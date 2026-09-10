@@ -11,7 +11,7 @@ def listar_produtos_ativos_para_venda() -> list[dict[str, Any]]:
         rows = conn.execute(
             """
             SELECT id, nome, marca, categoria, tamanho, unidade, codigo_barras,
-                   custo, preco_venda, quantidade, estoque_minimo
+                   custo_centavos, preco_centavos, quantidade, estoque_minimo
             FROM produtos
             WHERE ativo = 1
             ORDER BY nome COLLATE NOCASE ASC

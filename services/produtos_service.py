@@ -9,7 +9,7 @@ def _now_iso() -> str:
 
 def listar_produtos(apenas_ativos: bool = True) -> list[dict[str, Any]]:
     sql = """
-    SELECT id, nome, marca, categoria, tamanho, unidade, codigo_barras, custo, preco_venda, quantidade, estoque_minimo, ativo, criado_em
+    SELECT id, nome, marca, categoria, tamanho, unidade, codigo_barras, custo_centavos, preco_centavos, quantidade, estoque_minimo, ativo, criado_em
     FROM produtos
     """
     params = []

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QPushButton, QLabel, QStackedWidget
@@ -9,6 +8,7 @@ from PySide6.QtWidgets import (
 # Importamos as configurações globais
 from config import NOME_LOJA, VERSAO_SISTEMA
 from services.config_service import get_config, set_config
+from services.auth_service import Usuario
 from ui.themes import qss_light, qss_dark
 
 from ui.tela_produtos import TelaProdutos
@@ -19,12 +19,14 @@ from ui.tela_relatorios import TelaRelatorios
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, usuario_id: int, username: str, nome: str, is_admin: bool):
+    def __init__(self, usuario: Usuario):
         super().__init__()
-        self.usuario_id = usuario_id
-        self.username = username
-        self.nome = nome
-        self.is_admin = is_admin
+        self.usuario = usuario
+        self.usuario_id = usuario.id
+        self.username = usuario.username
+        self.nome = usuario.nome
+        self.cargo = usuario.cargo
+        self.is_admin = usuario.is_admin
 
         # 1. Configurações da Janela
         self.setWindowTitle(f"{NOME_LOJA} - v{VERSAO_SISTEMA}")
@@ -48,7 +50,10 @@ class MainWindow(QMainWindow):
         logo.setStyleSheet("font-size: 20px; font-weight: 900; margin-bottom: 5px;")
         sb.addWidget(logo)
 
-        user_info = QLabel(f"👤 {self.nome}")
+        user_info = QLabel(
+            f"👤 {self.nome}\n"
+            f"💼 {self.cargo}"
+        )
         user_info.setStyleSheet("opacity: 0.85; font-size: 12px; margin-bottom: 10px;")
         sb.addWidget(user_info)
 
@@ -91,7 +96,7 @@ class MainWindow(QMainWindow):
 
         if self.is_admin:
             self.tela_relatorios = TelaRelatorios()
-            self.tela_usuarios = TelaUsuarios()
+            self.tela_usuarios = TelaUsuarios(usuario=self.usuario)
             self.stack.addWidget(self.tela_relatorios) # Index 3
             self.stack.addWidget(self.tela_usuarios)   # Index 4
 

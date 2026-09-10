@@ -1,12 +1,13 @@
 import sys
 
-from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtWidgets import QApplication, QMessageBox, QDialog
 
 from database.db import init_db
-from services.auth_service import ensure_admin_user
+from services.usuario_service import existe_usuario_admin
 from services.config_service import get_config
 from ui.themes import qss_dark, qss_light
 from ui.login_dialog import LoginDialog
+from ui.admin_setup_dialog import AdminSetupDialog
 
 
 def main():
@@ -18,6 +19,8 @@ def main():
         init_db()
     except Exception:
         QMessageBox.critical(
+            None,
+            "Erro",
             "Falha ao conectar no banco de dados."
         )
         return 1
@@ -27,9 +30,16 @@ def main():
         app.setStyleSheet(qss_light())
     else:
         app.setStyleSheet(qss_dark())
+    
+    if not existe_usuario_admin():
+        
+        setup = AdminSetupDialog()
+        
+        if setup.exec() != QDialog.Accepted:
+            return 0
 
-    w = LoginDialog()
-    w.show()
+    login = LoginDialog()
+    login.show()
 
     sys.exit(app.exec())
 

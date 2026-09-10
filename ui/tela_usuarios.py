@@ -2,14 +2,18 @@
 from __future__ import annotations
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
-    QPushButton, QLineEdit, QLabel, QDialog, QFormLayout, QSpinBox,
+    QPushButton, QLineEdit, QLabel, QDialog, QFormLayout,
     QMessageBox, QCheckBox
 )
 from services.usuario_service import listar_usuarios, criar_usuario, atualizar_usuario
 
+
 class TelaUsuarios(QWidget):
-    def __init__(self):
+    def __init__(self, usuario):
         super().__init__()
+        
+        self.usuario = usuario
+        
         self.setObjectName("TelaUsuarios")
 
         self.layout = QVBoxLayout(self)
@@ -30,8 +34,8 @@ class TelaUsuarios(QWidget):
 
         # Tabela de usuários
         self.tabela = QTableWidget()
-        self.tabela.setColumnCount(5)
-        self.tabela.setHorizontalHeaderLabels(["ID", "Usuário", "Nome", "Admin", "Ativo"])
+        self.tabela.setColumnCount(6)
+        self.tabela.setHorizontalHeaderLabels(["ID", "Usuário", "Nome", "Cargo","Admin", "Ativo"])
         self.tabela.setEditTriggers(QTableWidget.NoEditTriggers)
         self.tabela.cellDoubleClicked.connect(self.editar_usuario)
         self.layout.addWidget(self.tabela)
@@ -47,8 +51,9 @@ class TelaUsuarios(QWidget):
             self.tabela.setItem(row, 0, QTableWidgetItem(str(usuario["id"])))
             self.tabela.setItem(row, 1, QTableWidgetItem(usuario["username"]))
             self.tabela.setItem(row, 2, QTableWidgetItem(usuario["nome"]))
-            self.tabela.setItem(row, 3, QTableWidgetItem("Sim" if usuario["is_admin"] else "Não"))
-            self.tabela.setItem(row, 4, QTableWidgetItem("Sim" if usuario["ativo"] else "Não"))
+            self.tabela.setItem(row, 3, QTableWidgetItem(usuario["cargo"]))
+            self.tabela.setItem(row, 4, QTableWidgetItem("Sim" if usuario["is_admin"] else "Não"))
+            self.tabela.setItem(row, 5, QTableWidgetItem("Sim" if usuario["ativo"] else "Não"))
 
     def adicionar_usuario(self):
         dialog = DialogUsuario()
@@ -80,6 +85,7 @@ class DialogUsuario(QDialog):
 
         self.input_username = QLineEdit()
         self.input_nome = QLineEdit()
+        self.input_cargo = QLineEdit()
         self.input_senha = QLineEdit()
         self.input_senha.setEchoMode(QLineEdit.Password)
         self.checkbox_admin = QCheckBox("Administrador")
@@ -87,6 +93,7 @@ class DialogUsuario(QDialog):
 
         form.addRow("Usuário:", self.input_username)
         form.addRow("Nome:", self.input_nome)
+        form.addRow("Cargo:", self.input_cargo)
         form.addRow("Senha:", self.input_senha)
         form.addRow("", self.checkbox_admin)
         form.addRow("", self.checkbox_ativo)
@@ -110,23 +117,26 @@ class DialogUsuario(QDialog):
             if usuario:
                 self.input_username.setText(usuario["username"])
                 self.input_nome.setText(usuario["nome"])
+                self.input_cargo.setText(usuario["cargo"])
                 self.checkbox_admin.setChecked(usuario["is_admin"])
                 self.checkbox_ativo.setChecked(usuario["ativo"])
 
     def salvar(self):
         username = self.input_username.text().strip()
         nome = self.input_nome.text().strip()
+        cargo = self.input_cargo.text().strip()
         senha = self.input_senha.text().strip()
         is_admin = self.checkbox_admin.isChecked()
         ativo = self.checkbox_ativo.isChecked()
 
-        if not username or not nome or (not self.usuario_id and not senha):
+        if not username or not nome or not cargo or (not self.usuario_id and not senha):
             QMessageBox.warning(self, "Erro", "Preencha todos os campos obrigatórios.")
             return
 
         self._data = {
             "username": username,
             "nome": nome,
+            "cargo": cargo,
             "senha": senha or None,  # se editar e deixar em branco, senha não muda
             "is_admin": is_admin,
             "ativo": ativo

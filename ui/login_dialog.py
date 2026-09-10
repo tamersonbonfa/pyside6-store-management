@@ -72,7 +72,7 @@ class LoginDialog(QDialog):
         self.user = user
 
         # ✅ ABRE A JANELA PRINCIPAL
-        self.main_window = MainWindow(usuario_id=user.id, username=user.username, nome=user.nome, is_admin=user.is_admin)
+        self.main_window = MainWindow(usuario=user)
         self.main_window.show()
 
         self.accept()

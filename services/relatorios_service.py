@@ -29,7 +29,7 @@ class RelatoriosService:
             
             # 2. MEIOS DE PAGAMENTO (Continua vindo da tabela vendas)
             pagamentos = conn.execute("""
-                SELECT forma_pagamento, SUM(total) as total
+                SELECT forma_pagamento, SUM(total_centavos) as total
                 FROM vendas
                 WHERE data BETWEEN ? AND ?
                 GROUP BY forma_pagamento
@@ -42,12 +42,12 @@ class RelatoriosService:
                     p.nome, 
                     m.tamanho,
                     m.unidade,
-                    p.custo as preco_compra,
-                    p.preco_venda,
+                    p.custo_centavos as preco_compra,
+                    p.preco_centavos ,
                     CAST(SUM(m.quantidade) AS INTEGER) as qtd_vendida, 
                     SUM(m.valor_venda) as total_faturado,
                     0 as desconto_total_reais, -- Ajuste se você salvar desconto na movimentação
-                    (SUM(m.valor_venda) - SUM(m.quantidade * p.custo)) as lucro_estimado
+                    (SUM(m.valor_venda) - SUM(m.quantidade * p.custo_centavos)) as lucro_estimado
                 FROM movimentacoes_estoque m
                 JOIN produtos p ON p.id = m.produto_id
                 WHERE m.tipo = 'SAIDA' AND m.data BETWEEN ? AND ?
