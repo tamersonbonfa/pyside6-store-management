@@ -64,12 +64,12 @@
 1. Clonar o Repositório
 ```bash
 
-git clone https://github.com/tamersonbonfa/pyqt-store-management.git pyqt-store-management
+git clone https://github.com/tamersonbonfa/pyside6-store-management.git pyside6-store-management
 
 ```
 ```bash
 
-cd pyqt-store-management
+cd pyside6-store-management
 
 ```
 
@@ -84,14 +84,14 @@ https://www.anaconda.com/download/success
 # Criando ambiente virtual pelo conda:
 ```bash
 
-conda create -n pyqt-store-management python=3.12
+conda create -n pyside6-store-management python=3.12
 
 ```
 
 # Ativação ambiente pelo conda:
 ```bash
 
-conda activate pyqt-store-management
+conda activate pyside6-store-management
 
 ```
 
