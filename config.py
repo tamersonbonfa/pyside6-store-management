@@ -3,12 +3,10 @@
 import os
 
 # --- PERSONALIZAÇÃO DA LOJA ---
-NOME_LOJA = "Nome da Sua loja"
-SLOGAN_LOJA = "A melhor solução para o seu negócio"
+NOME_LOJA = "Sunshine Store"
+SLOGAN_LOJA = "Gestão comercial simplificada"
 VERSAO_SISTEMA = "1.0.0"
 
-# SENHA GERADA PARA O USUÁRIO ADMIN PRIMEIRO LOGIN
-ADMIN_PWD = "123456"
 
 # EDITAR CADASTRO DE CATEGORIAS
 CATEGORIAS_PRODUTOS = [

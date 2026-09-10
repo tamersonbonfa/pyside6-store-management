@@ -1,19 +1,10 @@
 from __future__ import annotations
 
 import bcrypt
-from dataclasses import dataclass
-from datetime import datetime
 
+from dataclasses import dataclass
 from database.db import get_connection
 
-from config import (
-    ADMIN_PWD # IMPORTAR A SENHA DE ADMIN DO CONFIG.PY
-
-)
-
-
-def _now_iso() -> str:
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
 def hash_password(password: str) -> str:
@@ -35,45 +26,21 @@ class Usuario:
     id: int
     username: str
     nome: str | None
+    cargo: str
     is_admin: bool
-
-
-def ensure_admin_user():
-    with get_connection() as conn:
-        row = conn.execute(
-            "SELECT id FROM usuarios WHERE username = ?",
-            ("admin",),
-        ).fetchone()
-
-        if row:
-            # caso já exista, garante que seja admin
-            conn.execute(
-                "UPDATE usuarios SET is_admin = 1 WHERE id = ?",
-                (row["id"],)
-            )
-            conn.commit()
-            return
-
-        conn.execute(
-            """
-            INSERT INTO usuarios (username, senha_hash, nome, ativo, is_admin, criado_em)
-            VALUES (?, ?, ?, 1, 1, ?)
-            """,
-            ("admin", hash_password(ADMIN_PWD), "Administrador", _now_iso()),
-        )
-        conn.commit()
 
 
 def authenticate(username: str, password: str) -> Usuario | None:
     username = (username or "").strip()
-
+    password = (password or "").strip()
+    
     if not username or not password:
         return None
 
     with get_connection() as conn:
         row = conn.execute(
             """
-            SELECT id, username, nome, senha_hash, is_admin, ativo
+            SELECT id, username, nome, cargo, senha_hash, is_admin, ativo
             FROM usuarios
             WHERE username = ?
             """,
@@ -88,10 +55,20 @@ def authenticate(username: str, password: str) -> Usuario | None:
 
         if not verify_password(password, row["senha_hash"]):
             return None
+        conn.execute(
+            """
+            UPDATE usuarios
+            SET ultimo_login = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """,
+            (row["id"],)
+        )
+        conn.commit()
 
         return Usuario(
             id=int(row["id"]),
             username=str(row["username"]),
             nome=str(row["nome"]),
+            cargo=str(row["cargo"]),
             is_admin=bool(row["is_admin"]),
         )

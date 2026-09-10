@@ -21,10 +21,21 @@ else:
     DB_PATH = BASE_DIR_LOCAL / "database.db"
 
 def get_connection() -> sqlite3.Connection:
-    # Conecta ao banco no local permanente
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(
+        DB_PATH,
+        timeout=10
+    )
+
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON;")
+
+    conn.execute(
+        "PRAGMA foreign_keys = ON;"
+    )
+
+    conn.execute(
+        "PRAGMA journal_mode=WAL;"
+    )
+
     return conn
 
 def init_db():
@@ -37,7 +48,11 @@ def init_db():
             schema = SCHEMA_PATH.read_text(encoding="utf-8")
             conn.executescript(schema)
             conn.commit()
-        except FileNotFoundError:
-            print(f"Erro: Arquivo schema.sql não encontrado em {SCHEMA_PATH}")
+        except FileNotFoundError as e:
+            raise RuntimeError(
+                "Arquivo schema.sql não encontrado."
+            ) from e
         except Exception as e:
-            print(f"Erro ao inicializar banco: {e}")
+            raise RuntimeError(
+                "Falha ao inicializar banco de dados."
+            ) from e
