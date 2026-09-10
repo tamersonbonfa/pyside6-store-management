@@ -29,10 +29,10 @@ def buscar_usuario_por_id(usuario_id: int) -> dict[str, Any] | None:
 
 def criar_usuario(username: str, nome: str, cargo: str, senha: str, is_admin: bool = False, ativo: bool = True) -> int:
     """Cria um novo usuário."""
-    username = username.strip()
-    nome = nome.strip()
-    cargo = cargo.strip()
-    senha = senha.strip()
+    username = username.strip() if username else ""
+    nome = nome.strip() if nome else ""
+    cargo = cargo.strip() if cargo else ""
+
     if not username or not nome or not senha or not cargo:
         raise ValueError("Username, nome, cargo e senha são obrigatórios.")
 
@@ -49,29 +49,33 @@ def criar_usuario(username: str, nome: str, cargo: str, senha: str, is_admin: bo
 
 def atualizar_usuario(usuario_id: int, username: str, nome: str, cargo: str, senha: str | None = None, is_admin: bool = False, ativo: bool = True):
     """Atualiza um usuário existente. Se senha for None, não altera a senha."""
-    username = username.strip()
-    nome = nome.strip()
-    cargo = cargo.strip()
-    if senha:
-        senha = senha.strip()
+    username = username.strip() if username else ""
+    nome = nome.strip() if nome else ""
+    cargo = cargo.strip() if cargo else ""
+
     if not username or not nome or not cargo:
         raise ValueError("Username, nome e cargo são obrigatórios.")
 
     with get_connection() as conn:
-        if senha and senha.strip():
+        if senha:
             senha_hash = hash_password(senha)
-            conn.execute("""
+            cursor = conn.execute("""
                 UPDATE usuarios
                 SET username = ?, nome = ?, cargo = ?, senha_hash = ?, is_admin = ?, ativo = ?
                 WHERE id = ?
             """, (username, nome, cargo, senha_hash, 1 if is_admin else 0, 1 if ativo else 0, usuario_id))
         else:
-            conn.execute("""
+            cursor = conn.execute("""
                 UPDATE usuarios
                 SET username = ?, nome = ?, cargo = ?, is_admin = ?, ativo = ?
                 WHERE id = ?
             """, (username, nome, cargo, 1 if is_admin else 0, 1 if ativo else 0, usuario_id))
+            
+        if cursor.rowcount == 0:
+            raise ValueError("Usuário não encontrado.")
+        
         conn.commit()
+        return True
 
 def existe_usuario_admin() -> bool:
     with get_connection() as conn:

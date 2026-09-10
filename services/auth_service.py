@@ -8,6 +8,8 @@ from database.db import get_connection
 
 
 def hash_password(password: str) -> str:
+    if not isinstance(password, str):
+        raise TypeError("Senha deve ser texto.")
     # Gera o salt e o hash. O 'cost' padrão é 12.
     # O retorno já inclui o salt necessário para a verificação futura.
     pwd_bytes = password.encode("utf-8")
@@ -15,11 +17,13 @@ def hash_password(password: str) -> str:
     return bcrypt.hashpw(pwd_bytes, salt).decode("utf-8")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    # O bcrypt extrai o salt automaticamente do hash armazenado
-    return bcrypt.checkpw(
-        plain_password.encode("utf-8"), 
-        hashed_password.encode("utf-8")
-    )
+    try:
+        return bcrypt.checkpw(
+            plain_password.encode("utf-8"),
+            hashed_password.encode("utf-8")
+        )
+    except ValueError:
+        return False
 
 @dataclass
 class Usuario:
