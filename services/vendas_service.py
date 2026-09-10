@@ -6,6 +6,13 @@ from database.db import get_connection
 def _now_iso() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+def _centavos_para_reais(valor: int | None) -> float:
+    return (valor or 0) / 100
+
+
+def _reais_para_centavos(valor: float | int | None) -> int:
+    return int(round(float(valor or 0) * 100))
+
 def listar_produtos_ativos_para_venda() -> list[dict[str, Any]]:
     with get_connection() as conn:
         rows = conn.execute(
@@ -17,7 +24,14 @@ def listar_produtos_ativos_para_venda() -> list[dict[str, Any]]:
             ORDER BY nome COLLATE NOCASE ASC
             """
         ).fetchall()
-        return [dict(r) for r in rows]
+        return [
+            {
+                **dict(r),
+                "preco_venda": _centavos_para_reais(r["preco_centavos"]),
+                "custo": _centavos_para_reais(r["custo_centavos"]),
+            }
+            for r in rows
+        ]
 
 def listar_clientes_para_venda() -> list[dict[str, Any]]:
     with get_connection() as conn:
@@ -82,10 +96,11 @@ def criar_venda(
 
         cur = conn.execute(
             """
-            INSERT INTO vendas (data, cliente_id, usuario_id, forma_pagamento, total, valor_pago, troco, observacoes)
+            INSERT INTO vendas 
+            (data, cliente_id, usuario_id, forma_pagamento, total_centavos, valor_pago_centavos, troco_centavos, observacoes)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (_now_iso(), cliente_id, usuario_id, forma_pagamento, float(total), float(valor_pago), float(troco), observacoes),
+            (_now_iso(), cliente_id, usuario_id, forma_pagamento, int(round(total * 100)), int(round(valor_pago * 100)), int(round(troco * 100)), observacoes),
         )
         venda_id = int(cur.lastrowid)
 
@@ -103,10 +118,10 @@ def criar_venda(
             # CORREÇÃO: Adicionado 'desconto' na tabela venda_itens
             conn.execute(
                 """
-                INSERT INTO venda_itens (venda_id, produto_id, quantidade, preco_unitario, subtotal, tamanho, unidade, desconto)
+                INSERT INTO venda_itens (venda_id, produto_id, quantidade, preco_unitario_centavos, subtotal_centavos, tamanho, unidade, desconto_centavos)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (venda_id, pid, qtd, preco, subtotal, tamanho, unidade, desconto),
+                (venda_id, pid, qtd, int(round(preco * 100)), int(round(subtotal * 100)), tamanho, unidade, int(round(desconto * 100))),
             )
 
             conn.execute(
@@ -115,7 +130,7 @@ def criar_venda(
                 (data, tipo, produto_id, quantidade, observacao, usuario_id, usuario_nome, venda_id, tamanho, unidade, valor_venda, desconto)
                 VALUES (?, 'SAIDA', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (_now_iso(), pid, qtd, "Venda", usuario_id, usuario_nome, venda_id, tamanho, unidade, subtotal, desconto),
+                (_now_iso(), pid, qtd, "Venda", usuario_id, usuario_nome, venda_id, tamanho, unidade, int(round(subtotal * 100)), int(round(desconto * 100))),
             )
 
             conn.execute("UPDATE produtos SET quantidade = quantidade - ? WHERE id = ?", (qtd, pid))
@@ -127,7 +142,7 @@ def obter_dados_venda(venda_id: int) -> dict[str, Any]:
     with get_connection() as conn:
         venda = conn.execute(
             """
-            SELECT v.id, v.data, v.forma_pagamento, v.total, v.valor_pago, v.troco, v.observacoes,
+            SELECT v.id, v.data, v.forma_pagamento, v.total_centavos, v.valor_pago_centavos, v.troco_centavos, v.observacoes,
                    c.nome as cliente_nome, c.telefone as cliente_telefone, c.endereco as cliente_endereco,
                    u.nome as usuario_nome, u.username as usuario_user
             FROM vendas v
@@ -144,7 +159,7 @@ def obter_dados_venda(venda_id: int) -> dict[str, Any]:
         # CORREÇÃO: i.desconto adicionado explicitamente no SELECT
         itens = conn.execute(
             """
-            SELECT i.quantidade, i.preco_unitario, i.subtotal, i.desconto,
+            SELECT i.quantidade, i.preco_unitario_centavos, i.subtotal_centavos, i.desconto_centavos,
                    i.tamanho, i.unidade,
                    p.nome as produto_nome, p.marca as produto_marca
             FROM venda_itens i

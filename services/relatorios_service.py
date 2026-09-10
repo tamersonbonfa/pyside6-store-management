@@ -17,10 +17,10 @@ class RelatoriosService:
             financeiro = conn.execute("""
                 SELECT 
                     COUNT(DISTINCT venda_id) as total_vendas,
-                    COALESCE(SUM(valor_venda), 0) as faturamento,
+                    COALESCE(SUM(valor_venda), 0) / 100.0 as faturamento,
                     CASE 
                         WHEN COUNT(DISTINCT venda_id) > 0 
-                        THEN SUM(valor_venda) / COUNT(DISTINCT venda_id) 
+                        THEN (SUM(valor_venda) / 100.0) / COUNT(DISTINCT venda_id) 
                         ELSE 0 
                     END as ticket_medio
                 FROM movimentacoes_estoque 
@@ -42,12 +42,15 @@ class RelatoriosService:
                     p.nome, 
                     m.tamanho,
                     m.unidade,
-                    p.custo_centavos as preco_compra,
-                    p.preco_centavos ,
+                    p.custo_centavos AS custo_centavos,
+                    p.preco_centavos AS preco_centavos,
                     CAST(SUM(m.quantidade) AS INTEGER) as qtd_vendida, 
-                    SUM(m.valor_venda) as total_faturado,
+                    SUM(m.valor_venda) / 100.0 AS total_faturado,
                     0 as desconto_total_reais, -- Ajuste se você salvar desconto na movimentação
-                    (SUM(m.valor_venda) - SUM(m.quantidade * p.custo_centavos)) as lucro_estimado
+                    (
+                        SUM(m.valor_venda) -
+                        SUM(m.quantidade * p.custo_centavos)
+                    ) / 100.0 AS lucro_estimado
                 FROM movimentacoes_estoque m
                 JOIN produtos p ON p.id = m.produto_id
                 WHERE m.tipo = 'SAIDA' AND m.data BETWEEN ? AND ?
@@ -67,8 +70,28 @@ class RelatoriosService:
                 "financeiro": dict(financeiro) if financeiro and financeiro["total_vendas"] > 0 else {
                     "total_vendas": 0, "faturamento": 0.0, "ticket_medio": 0.0
                 },
-                "pagamentos": [dict(r) for r in pagamentos],
-                "produtos": [dict(r) for r in produtos],
+                "pagamentos": [
+                    {
+                        **dict(r),
+                        "total": r["total"] / 100
+                    }
+                    for r in pagamentos
+                ],
+               "produtos": [
+                    {
+                        **dict(r),
+
+                        # banco centavos -> tela reais
+                        "preco_compra": int(r["custo_centavos"]) / 100,
+                        "preco_venda": int(r["preco_centavos"]) / 100,
+
+                        # movimentação já está em reais
+                        "total_faturado": float(r["total_faturado"] or 0),
+
+                        "lucro_estimado": float(r["lucro_estimado"] or 0),
+                    }
+                    for r in produtos
+                ],
                 "estoque_baixo": [dict(r) for r in estoque_baixo]
             }
     

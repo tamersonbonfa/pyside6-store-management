@@ -5,7 +5,8 @@ from database.db import get_connection
 
 def _now_iso() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
+def _centavos_para_reais(valor: int | None) -> float:
+    return (valor or 0) / 100
 
 def listar_produtos(apenas_ativos: bool = True) -> list[dict[str, Any]]:
     sql = """
@@ -21,7 +22,14 @@ def listar_produtos(apenas_ativos: bool = True) -> list[dict[str, Any]]:
 
     with get_connection() as conn:
         rows = conn.execute(sql, params).fetchall()
-        return [dict(r) for r in rows]
+        return [
+            {
+                **dict(r),
+                "custo": _centavos_para_reais(r["custo_centavos"]),
+                "preco_venda": _centavos_para_reais(r["preco_centavos"]),
+            }
+            for r in rows
+        ]
 
 
 def buscar_produtos_por_nome(texto: str, apenas_ativos: bool = True) -> list[dict[str, Any]]:
@@ -30,8 +38,9 @@ def buscar_produtos_por_nome(texto: str, apenas_ativos: bool = True) -> list[dic
         return listar_produtos(apenas_ativos=apenas_ativos)
 
     sql = """
-    SELECT id, nome, marca, categoria, tamanho, unidade, codigo_barras, custo, preco_venda,
-           quantidade, estoque_minimo, ativo, criado_em
+    SELECT id, nome, marca, categoria, tamanho, unidade, codigo_barras,
+        custo_centavos, preco_centavos,
+        quantidade, estoque_minimo, ativo, criado_em
     FROM produtos
     WHERE (nome LIKE ? OR marca LIKE ? OR categoria LIKE ? OR codigo_barras LIKE ?)
     """
@@ -94,11 +103,11 @@ def criar_produto(
         cur = conn.execute(
             """
             INSERT INTO produtos
-            (nome, marca, categoria, tamanho, unidade, codigo_barras, custo, preco_venda, quantidade, estoque_minimo, ativo, criado_em)
+            (nome, marca, categoria, tamanho, unidade, codigo_barras, custo_centavos, preco_centavos, quantidade, estoque_minimo, ativo, criado_em)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (nome, marca, categoria, tamanho, unidade, codigo_barras,
-             float(custo), float(preco_venda), quantidade, estoque_minimo, ativo, _now_iso())
+             int(round(custo * 100)), int(round(preco_venda * 100)), quantidade, estoque_minimo, ativo, _now_iso())
         )
         produto_id = int(cur.lastrowid)
 
@@ -144,7 +153,7 @@ def atualizar_produto(
             """
             UPDATE produtos
             SET nome = ?, marca = ?, categoria = ?, tamanho = ?, unidade = ?, codigo_barras = ?,
-                custo = ?, preco_venda = ?, estoque_minimo = ?, ativo = ?
+                custo_centavos = ?, preco_centavos = ?, estoque_minimo = ?, ativo = ?
             WHERE id = ?
             """,
             (
@@ -154,8 +163,8 @@ def atualizar_produto(
                 float(tamanho),
                 unidade,
                 codigo_barras,
-                float(custo),
-                float(preco_venda),
+                int(round(custo * 100)),
+                int(round(preco_venda * 100)),
                 int(estoque_minimo),
                 1 if ativo else 0,
                 int(produto_id),

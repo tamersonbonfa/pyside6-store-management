@@ -4,7 +4,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QAbstractItemView, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
     QTableWidget, QTableWidgetItem, QMessageBox, QFormLayout, QDialog,
-    QTextEdit
+    QTextEdit, QCheckBox
 )
 
 from services.clientes_service import (
@@ -30,11 +30,14 @@ class ClienteDialog(QDialog):
         self.ed_nome = QLineEdit()
         self.ed_tel = QLineEdit()
         self.ed_end = QLineEdit()
+        self.chk_ativo = QCheckBox("Cliente ativo")
+        self.chk_ativo.setChecked(True)
 
         self.ed_obs = QTextEdit()
         self.ed_obs.setFixedHeight(120)
 
         form.addRow("Nome*", self.ed_nome)
+        form.addRow("", self.chk_ativo)
         form.addRow("Telefone", self.ed_tel)
         form.addRow("Endereço", self.ed_end)
         form.addRow("Observações", self.ed_obs)
@@ -58,6 +61,7 @@ class ClienteDialog(QDialog):
 
     def _fill(self, c: dict):
         self.ed_nome.setText(str(c.get("nome") or ""))
+        self.chk_ativo.setChecked(bool(c.get("ativo")))
         self.ed_tel.setText(str(c.get("telefone") or ""))
         self.ed_end.setText(str(c.get("endereco") or ""))
         self.ed_obs.setPlainText(str(c.get("observacoes") or ""))
@@ -65,6 +69,7 @@ class ClienteDialog(QDialog):
     def get_data(self) -> dict:
         return {
             "nome": self.ed_nome.text().strip(),
+            "ativo": self.chk_ativo.isChecked(),
             "telefone": self.ed_tel.text().strip(),
             "endereco": self.ed_end.text().strip(),
             "observacoes": self.ed_obs.toPlainText().strip(),
@@ -98,8 +103,8 @@ class TelaClientes(QWidget):
 
         layout.addLayout(header)
 
-        self.tbl = QTableWidget(0, 5)
-        self.tbl.setHorizontalHeaderLabels(["ID", "Nome", "Telefone", "Endereço", "Criado em"])
+        self.tbl = QTableWidget(0, 6)
+        self.tbl.setHorizontalHeaderLabels(["ID", "Nome", "Status", "Telefone", "Endereço", "Criado em"])
         self.tbl.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.tbl.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.tbl.setAlternatingRowColors(True)
@@ -151,6 +156,7 @@ class TelaClientes(QWidget):
             values = [
                 str(c["id"]),
                 str(c.get("nome") or ""),
+                "Ativo" if c.get("ativo") else "Inativo",
                 str(c.get("telefone") or ""),
                 str(c.get("endereco") or ""),
                 str(c.get("criado_em") or ""),
@@ -196,6 +202,7 @@ class TelaClientes(QWidget):
             atualizar_cliente(
                 cliente_id=int(c["id"]),
                 nome=d["nome"],
+                ativo=d["ativo"],
                 telefone=d["telefone"],
                 endereco=d["endereco"],
                 observacoes=d["observacoes"],

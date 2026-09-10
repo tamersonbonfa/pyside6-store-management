@@ -522,7 +522,14 @@ class TelaProdutos(QWidget):
         if not p: return
         dlg = ProdutoDialog(self, produto=p)
         if dlg.exec() == QDialog.Accepted:
-            atualizar_produto(produto_id=int(p["id"]), **dlg.get_data())
+            dados = dlg.get_data()
+
+            dados.pop("quantidade", None)
+
+            atualizar_produto(
+                produto_id=int(p["id"]),
+                **dados
+            )
             self.carregar()
 
     def entrada(self):
