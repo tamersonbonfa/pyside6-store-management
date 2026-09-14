@@ -100,6 +100,10 @@ class RelatorioMovimentacoesDialog(QDialog):
             "Data", "Tipo", "Produto", "Cat.", "Qtd", "Tam", "Un", "Obs", "Venda", "Usuário", "Valor", "Desc", "Desc R$"
         ])
         self.tbl.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        # Bloqueia edição das células
+        self.tbl.setEditTriggers(
+            QTableWidget.EditTrigger.NoEditTriggers
+        )
         self.tbl.setAlternatingRowColors(True)
         layout.addWidget(self.tbl)
 
@@ -433,6 +437,10 @@ class TelaProdutos(QWidget):
             "ID", "Nome", "Marca", "Categoria", "Tamanho", "Unidade",
             "Custo", "Preço", "Qtd", "Mínimo", "Status", "Barras"
         ])
+        # Bloqueia edição das células
+        self.tbl.setEditTriggers(
+            QTableWidget.EditTrigger.NoEditTriggers
+        )
         self.tbl.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.tbl.setEditTriggers(QAbstractItemView.NoEditTriggers)
 
@@ -458,6 +466,10 @@ class TelaProdutos(QWidget):
         self.tbl_mov.setHorizontalHeaderLabels([
             "Data", "Tipo", "Produto", "Cat.", "Qtd", "Tam", "Un", "Obs", "Venda", "Usuário", "Valor", "Desc", "Desc R$"
         ])
+        # Bloqueia edição das células
+        self.tbl_mov.setEditTriggers(
+            QTableWidget.EditTrigger.NoEditTriggers
+        )
         self.tbl_mov.setEditTriggers(QAbstractItemView.NoEditTriggers)
 
         bottom = QWidget()

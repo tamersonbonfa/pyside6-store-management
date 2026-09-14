@@ -80,10 +80,22 @@ def gerar_recibo_80mm(dados: dict[str, Any]) -> str:
 
     line("-" * 38)
     line(f"TOTAL: {_money(venda.get('total_centavos', 0))}", size=11, bold=True)
+
     if total_desconto_centavos > 0:
         line(f"Desconto aplicado: {_money(total_desconto_centavos)}")
-    line(f"Pago: {_money(venda.get('valor_pago_centavos', 0))}")
-    line(f"Troco: {_money(venda.get('troco_centavos', 0))}")
+
+    total_centavos = int(venda.get("total_centavos") or 0)
+    pago_centavos = int(venda.get("valor_pago_centavos") or 0)
+    troco_centavos = int(venda.get("troco_centavos") or 0)
+
+    devendo_centavos = max(0, total_centavos - pago_centavos)
+
+    line(f"Pago: {_money(pago_centavos)}")
+
+    if venda.get("forma_pagamento") == "CREDIARIO":
+        line(f"Devendo: {_money(devendo_centavos)}", bold=True)
+
+    line(f"Troco: {_money(troco_centavos)}")
 
     obs = (venda.get("observacoes") or "").strip()
     if obs:

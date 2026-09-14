@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS vendas (
     data TEXT NOT NULL,
     cliente_id INTEGER,
     usuario_id INTEGER,
-    forma_pagamento TEXT NOT NULL, -- DINHEIRO | PIX | CARTAO
+    forma_pagamento TEXT NOT NULL, -- DINHEIRO | PIX | CARTAO | CREDIARIO
     total_centavos INTEGER NOT NULL,
     valor_pago_centavos INTEGER NOT NULL,
     troco_centavos INTEGER NOT NULL,
@@ -91,6 +91,53 @@ CREATE TABLE IF NOT EXISTS movimentacoes_estoque (
     FOREIGN KEY(venda_id) REFERENCES vendas(id) ON DELETE SET NULL
 );
 
+CREATE TABLE IF NOT EXISTS contas_receber (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    cliente_id INTEGER NOT NULL,
+
+    venda_id INTEGER,
+
+    valor_centavos INTEGER NOT NULL,
+
+    valor_pago_centavos INTEGER NOT NULL DEFAULT 0,
+
+    status TEXT NOT NULL DEFAULT 'ABERTO',
+
+    data_criacao TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    data_quitacao TEXT,
+
+    observacao TEXT,
+
+    FOREIGN KEY(cliente_id)
+        REFERENCES clientes(id)
+        ON DELETE RESTRICT,
+
+    FOREIGN KEY(venda_id)
+        REFERENCES vendas(id)
+        ON DELETE SET NULL
+);
+
+
+CREATE TABLE IF NOT EXISTS pagamentos_contas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    conta_id INTEGER NOT NULL,
+
+    valor_centavos INTEGER NOT NULL,
+
+    data TEXT NOT NULL,
+
+    usuario_id INTEGER,
+
+    observacao TEXT,
+
+    FOREIGN KEY(conta_id)
+        REFERENCES contas_receber(id)
+        ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_produtos_nome ON produtos(nome);
 CREATE INDEX IF NOT EXISTS idx_clientes_nome ON clientes(nome);
 CREATE INDEX IF NOT EXISTS idx_vendas_usuario ON vendas(usuario_id);
@@ -98,3 +145,6 @@ CREATE INDEX IF NOT EXISTS idx_vendas_data ON vendas(data);
 CREATE INDEX IF NOT EXISTS idx_mov_estoque_data ON movimentacoes_estoque(data);
 CREATE INDEX IF NOT EXISTS idx_mov_usuario ON movimentacoes_estoque(usuario_id);
 CREATE INDEX IF NOT EXISTS idx_produtos_codigo_barras ON produtos(codigo_barras);
+CREATE INDEX IF NOT EXISTS idx_contas_cliente ON contas_receber(cliente_id);
+CREATE INDEX IF NOT EXISTS idx_contas_status ON contas_receber(status);
+CREATE INDEX IF NOT EXISTS idx_pagamentos_conta ON pagamentos_contas(conta_id);

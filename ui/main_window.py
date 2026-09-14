@@ -14,6 +14,7 @@ from ui.themes import qss_light, qss_dark
 from ui.tela_produtos import TelaProdutos
 from ui.tela_clientes import TelaClientes
 from ui.tela_vendas import TelaVendas
+from ui.tela_crediario import TelaCrediario
 from ui.tela_usuarios import TelaUsuarios
 from ui.tela_relatorios import TelaRelatorios
 
@@ -60,10 +61,12 @@ class MainWindow(QMainWindow):
         self.btn_vendas = QPushButton("🧾 Frente de Vendas")
         self.btn_produtos = QPushButton("📦 Produtos / Estoque")
         self.btn_clientes = QPushButton("👤 Clientes")
+        self.btn_crediario = QPushButton("💰 Crediário")
         
         sb.addWidget(self.btn_vendas)
         sb.addWidget(self.btn_produtos)
         sb.addWidget(self.btn_clientes)
+        sb.addWidget(self.btn_crediario)
 
         if self.is_admin:
             sb.addSpacing(10)
@@ -89,10 +92,12 @@ class MainWindow(QMainWindow):
         self.tela_vendas = TelaVendas(usuario_id=self.usuario_id)
         self.tela_produtos = TelaProdutos(usuario_id=self.usuario_id)
         self.tela_clientes = TelaClientes()
+        self.tela_crediario = TelaCrediario(usuario_id=self.usuario_id)
         
         self.stack.addWidget(self.tela_vendas)   # Index 0
         self.stack.addWidget(self.tela_produtos) # Index 1
         self.stack.addWidget(self.tela_clientes) # Index 2
+        self.stack.addWidget(self.tela_crediario) # Index 3
 
         if self.is_admin:
             self.tela_relatorios = TelaRelatorios()
@@ -110,6 +115,7 @@ class MainWindow(QMainWindow):
         self.btn_vendas.clicked.connect(lambda: self.stack.setCurrentWidget(self.tela_vendas))
         self.btn_produtos.clicked.connect(lambda: self.stack.setCurrentWidget(self.tela_produtos))
         self.btn_clientes.clicked.connect(lambda: self.stack.setCurrentWidget(self.tela_clientes))
+        self.btn_crediario.clicked.connect(lambda: self.stack.setCurrentWidget(self.tela_crediario))
 
         if self.is_admin:
             self.btn_relatorios.clicked.connect(lambda: self.stack.setCurrentWidget(self.tela_relatorios))

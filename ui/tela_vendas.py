@@ -27,6 +27,7 @@ def _money(v: float) -> str:
         return "R$ 0,00"
 
 
+
 def registrar_movimentacao_saida(produto_id: int, quantidade: int, venda_id: int, usuario_id: int, desconto: float = 0):
     """
     Registra saída de estoque apenas na finalização da venda, com usuário.
@@ -84,7 +85,7 @@ class TelaVendas(QWidget):
         self.cb_cliente.setMinimumWidth(380)
 
         self.cb_pag = QComboBox()
-        self.cb_pag.addItems(["DINHEIRO", "PIX", "CARTAO"])
+        self.cb_pag.addItems(["DINHEIRO", "PIX", "CARTAO", "CREDIARIO"])
 
         self.sp_pago = QDoubleSpinBox()
         self.sp_pago.setRange(0, 999999)
@@ -175,8 +176,21 @@ class TelaVendas(QWidget):
         self.btn_add.clicked.connect(self.adicionar_item)
         self.btn_finalizar.clicked.connect(self.finalizar)
         self.sp_pago.valueChanged.connect(self.atualizar_totais)
+        self.cb_pag.currentTextChanged.connect(self.alterar_forma_pagamento)
 
         self.carregar()
+    
+    # Alterar forma pagamento
+    def alterar_forma_pagamento(self, forma):
+        forma = forma.upper()
+
+        if forma == "CREDIARIO":
+            self.sp_pago.setValue(0)
+            self.sp_pago.setEnabled(True)
+            self.lbl_troco.setText("Pagamento parcial ou total no crediário")
+        else:
+            self.sp_pago.setEnabled(True)
+            self.atualizar_totais()
 
     # --- Auxiliares ---
     def _make_searchable_combo(self, combo):
@@ -388,8 +402,16 @@ class TelaVendas(QWidget):
 
     def atualizar_totais(self):
         t = self.total()
+        forma = self.cb_pag.currentText().upper()
+
+        if forma == "CREDIARIO":
+            self.lbl_total.setText(f"TOTAL: {_money(t)}")
+            self.lbl_troco.setText("Pagamento lançado no crediário")
+            return
+
         pago = float(self.sp_pago.value())
         troco = max(0.0, pago - t)
+
         self.lbl_total.setText(f"TOTAL: {_money(t)}")
         self.lbl_troco.setText(f"Troco: {_money(troco)}")
 
@@ -400,6 +422,13 @@ class TelaVendas(QWidget):
 
         cliente_id = self.cb_cliente.currentData()
         forma = self.cb_pag.currentText().strip().upper()
+        if forma == "CREDIARIO" and not cliente_id:
+            QMessageBox.warning(
+                self,
+                "Cliente obrigatório",
+                "Para vendas no crediário selecione um cliente."
+            )
+            return
         pago = float(self.sp_pago.value())
         obs = self.ed_obs.toPlainText().strip()
 
@@ -424,8 +453,6 @@ class TelaVendas(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Erro", str(e))
             return
-
-        # **REMOVIDO**: Loop duplicado de registrar_movimentacao_saida
 
         # --- Gera PDF ---
         try:

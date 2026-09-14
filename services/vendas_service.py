@@ -53,12 +53,17 @@ def criar_venda(
     observacoes: str = "",
 ) -> int:
     forma_pagamento = (forma_pagamento or "").strip().upper()
-    if forma_pagamento not in ("DINHEIRO", "PIX", "CARTAO"):
+    if forma_pagamento not in ("DINHEIRO", "PIX", "CARTAO", "CREDIARIO"):
         raise ValueError("Forma de pagamento inválida.")
 
     if not itens:
         raise ValueError("Adicione pelo menos 1 item.")
 
+    if forma_pagamento == "CREDIARIO" and not cliente_id:
+        raise ValueError(
+            "Venda fiado precisa ter um cliente selecionado."
+        )
+    
     if valor_pago < 0:
         raise ValueError("Valor pago inválido.")
 
@@ -86,10 +91,13 @@ def criar_venda(
             subtotal = qtd * preco * (1 - desconto / 100)
             total += subtotal
 
-        if valor_pago < total:
+        if forma_pagamento != "CREDIARIO" and valor_pago < total:
             raise ValueError("Valor pago insuficiente.")
 
-        troco = float(valor_pago - total)
+        troco = 0
+
+        if forma_pagamento != "CREDIARIO":
+            troco = float(valor_pago - total)
 
         usuario_row = conn.execute("SELECT nome, username FROM usuarios WHERE id = ?", (usuario_id,)).fetchone()
         usuario_nome = usuario_row["nome"] if (usuario_row and usuario_row["nome"]) else (usuario_row["username"] if usuario_row else "Desconhecido")
@@ -103,6 +111,41 @@ def criar_venda(
             (_now_iso(), cliente_id, usuario_id, forma_pagamento, int(round(total * 100)), int(round(valor_pago * 100)), int(round(troco * 100)), observacoes),
         )
         venda_id = int(cur.lastrowid)
+        
+        if forma_pagamento == "CREDIARIO":
+
+            valor_total_centavos = int(round(total * 100))
+            valor_pago_centavos = int(round(valor_pago * 100))
+
+            if valor_pago_centavos >= valor_total_centavos:
+                status = "QUITADO"
+            elif valor_pago_centavos > 0:
+                status = "PARCIAL"
+            else:
+                status = "ABERTO"
+
+            conn.execute(
+                """
+                INSERT INTO contas_receber
+                (
+                    cliente_id,
+                    venda_id,
+                    valor_centavos,
+                    valor_pago_centavos,
+                    status,
+                    data_quitacao
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    cliente_id,
+                    venda_id,
+                    valor_total_centavos,
+                    valor_pago_centavos,
+                    status,
+                    _now_iso() if status == "QUITADO" else None
+                )
+            )
 
         for it in itens:
             pid = int(it["produto_id"])

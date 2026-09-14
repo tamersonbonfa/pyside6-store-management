@@ -59,6 +59,11 @@ class TelaRelatorios(QWidget):
             "Produto", "Qtd", "Tam.", "Un.", "Preço Compra", "Preço Venda", "Descontos (R$)", "Total Faturado", "Lucro Est."
         ])
         
+        # Bloqueia edição das células
+        self.tab_produtos.setEditTriggers(
+            QTableWidget.EditTrigger.NoEditTriggers
+        )
+        
         header = self.tab_produtos.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Stretch)
         for i in range(1, 9):
@@ -71,12 +76,20 @@ class TelaRelatorios(QWidget):
         v_info.addWidget(QLabel("<b>💳 MEIOS DE PAGAMENTO</b>"))
         self.tab_pagos = QTableWidget(0, 2)
         self.tab_pagos.setHorizontalHeaderLabels(["Forma", "Total"])
+        # Bloqueia edição das células
+        self.tab_pagos.setEditTriggers(
+            QTableWidget.EditTrigger.NoEditTriggers
+        )
         self.tab_pagos.setFixedHeight(150)
         v_info.addWidget(self.tab_pagos)
 
         v_info.addWidget(QLabel("<b>⚠️ ESTOQUE CRÍTICO</b>"))
         self.tab_estoque = QTableWidget(0, 2)
         self.tab_estoque.setHorizontalHeaderLabels(["Item", "Atual"])
+        # Bloqueia edição das células
+        self.tab_estoque.setEditTriggers(
+            QTableWidget.EditTrigger.NoEditTriggers
+        )
         v_info.addWidget(self.tab_estoque)
 
         corpo.addLayout(v_prod, 3) 
