@@ -10,14 +10,12 @@ VERSAO_SISTEMA = "1.0.0"
 
 # EDITAR CADASTRO DE CATEGORIAS
 CATEGORIAS_PRODUTOS = [
-    "TESTE 01", 
-    "TESTE 02", 
-    "TESTE 03", 
-    "TESTE 04", 
-    "TESTE 05", 
-    "TESTE 06", 
-    "TESTE 07", 
-    "TESTE 08"
+    "Bebidas",
+    "Alimentos",
+    "Limpeza",
+    "Higiene",
+    "Eletrônicos",
+    "Outros",
 ]
 #EDITAR CADASTRO UNIDADE DOS PRODUTOS
 UNIDADE_PRODUTOS = [

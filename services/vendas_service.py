@@ -118,10 +118,10 @@ def criar_venda(
             # CORREÇÃO: Adicionado 'desconto' na tabela venda_itens
             conn.execute(
                 """
-                INSERT INTO venda_itens (venda_id, produto_id, quantidade, preco_unitario_centavos, subtotal_centavos, tamanho, unidade, desconto_centavos)
+                INSERT INTO venda_itens (venda_id, produto_id, quantidade, preco_unitario_centavos, subtotal_centavos, tamanho, unidade, desconto)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (venda_id, pid, qtd, int(round(preco * 100)), int(round(subtotal * 100)), tamanho, unidade, int(round(desconto * 100))),
+                (venda_id, pid, qtd, int(round(preco * 100)), int(round(subtotal * 100)), tamanho, unidade, desconto),
             )
 
             conn.execute(
@@ -130,7 +130,7 @@ def criar_venda(
                 (data, tipo, produto_id, quantidade, observacao, usuario_id, usuario_nome, venda_id, tamanho, unidade, valor_venda, desconto)
                 VALUES (?, 'SAIDA', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (_now_iso(), pid, qtd, "Venda", usuario_id, usuario_nome, venda_id, tamanho, unidade, int(round(subtotal * 100)), int(round(desconto * 100))),
+                (_now_iso(), pid, qtd, "Venda", usuario_id, usuario_nome, venda_id, tamanho, unidade, subtotal, desconto),
             )
 
             conn.execute("UPDATE produtos SET quantidade = quantidade - ? WHERE id = ?", (qtd, pid))
@@ -159,7 +159,7 @@ def obter_dados_venda(venda_id: int) -> dict[str, Any]:
         # CORREÇÃO: i.desconto adicionado explicitamente no SELECT
         itens = conn.execute(
             """
-            SELECT i.quantidade, i.preco_unitario_centavos, i.subtotal_centavos, i.desconto_centavos,
+            SELECT i.quantidade, i.preco_unitario_centavos, i.subtotal_centavos, i.desconto,
                    i.tamanho, i.unidade,
                    p.nome as produto_nome, p.marca as produto_marca
             FROM venda_itens i
