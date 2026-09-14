@@ -46,7 +46,13 @@ class RelatoriosService:
                     p.preco_centavos AS preco_centavos,
                     CAST(SUM(m.quantidade) AS INTEGER) as qtd_vendida, 
                     SUM(m.valor_venda_centavos) / 100.0 AS total_faturado,
-                    0 as desconto_total_reais, -- Ajuste se você salvar desconto na movimentação
+                    SUM(
+                        (
+                            (p.preco_centavos / 100.0)
+                            * m.quantidade
+                            * (m.desconto / 100.0)
+                        )
+                    ) AS desconto_total_reais,
                     (
                         SUM(m.valor_venda_centavos) -
                         SUM(m.quantidade * p.custo_centavos)
@@ -73,7 +79,7 @@ class RelatoriosService:
                 "pagamentos": [
                     {
                         **dict(r),
-                        "total": r["total"] / 100
+                        "total": (r["total"] or 0) / 100
                     }
                     for r in pagamentos
                 ],

@@ -130,7 +130,7 @@ def criar_venda(
                 (data, tipo, produto_id, quantidade, observacao, usuario_id, usuario_nome, venda_id, tamanho, unidade, valor_venda_centavos, desconto)
                 VALUES (?, 'SAIDA', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (_now_iso(), pid, qtd, "Venda", usuario_id, usuario_nome, venda_id, tamanho, unidade, subtotal, desconto),
+                (_now_iso(), pid, qtd, "Venda", usuario_id, usuario_nome, venda_id, tamanho, unidade,  int(round(subtotal * 100)), desconto),
             )
 
             conn.execute("UPDATE produtos SET quantidade = quantidade - ? WHERE id = ?", (qtd, pid))

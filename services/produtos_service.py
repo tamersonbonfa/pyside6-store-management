@@ -53,6 +53,8 @@ def buscar_produtos_por_nome(texto: str, apenas_ativos: bool = True) -> list[dic
 
     with get_connection() as conn:
         rows = conn.execute(sql, params).fetchall()
+        for r in rows[:1]:
+            print(dict(r))
         return [dict(r) for r in rows]
 
 
@@ -247,7 +249,8 @@ def listar_movimentacoes(produto_id: int | None = None, limite: int = 200) -> li
         SELECT 
             m.*, 
             p.nome as produto_nome, 
-            p.categoria,       -- << ADICIONE ESTA LINHA
+            p.categoria,
+            p.preco_centavos,
             p.tamanho, 
             p.unidade,
             u.nome as usuario_nome

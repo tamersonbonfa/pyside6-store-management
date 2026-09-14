@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
     QTableWidget, QTableWidgetItem, QMessageBox, QFormLayout, QDialog,
     QSpinBox, QDoubleSpinBox, QCheckBox, QTextEdit, QSplitter, QComboBox
 )
+from PySide6.QtGui import QIntValidator
 from services.produtos_service import (
     listar_produtos,
     buscar_produtos_por_nome,
@@ -76,18 +77,27 @@ class RelatorioMovimentacoesDialog(QDialog):
         self.cb_filtro_usuario = QComboBox()
         self.cb_filtro_usuario.addItem("Todos os Usuários")
         
+        self.ed_filtro_venda = QLineEdit()
+        self.ed_filtro_venda.setPlaceholderText("ID da venda")
+        self.ed_filtro_venda.setFixedWidth(100)
+        self.ed_filtro_venda.setValidator(QIntValidator(1, 9999999))
+        
         linha2.addWidget(QLabel("Filtrar por:"))
         linha2.addWidget(self.cb_filtro_categoria, 1)
         linha2.addWidget(self.cb_filtro_usuario, 1)
+
+        linha2.addWidget(QLabel("Venda:"))
+        linha2.addWidget(self.ed_filtro_venda)
+
         linha2.addStretch(2)
         filtros_container.addLayout(linha2)
         
         layout.addLayout(filtros_container)
 
         # --- TABELA ---
-        self.tbl = QTableWidget(0, 12)
+        self.tbl = QTableWidget(0, 13)
         self.tbl.setHorizontalHeaderLabels([
-            "Data", "Tipo", "Produto", "Cat.", "Qtd", "Tam", "Un", "Obs", "Venda", "Usuário", "Valor", "Desc"
+            "Data", "Tipo", "Produto", "Cat.", "Qtd", "Tam", "Un", "Obs", "Venda", "Usuário", "Valor", "Desc", "Desc R$"
         ])
         self.tbl.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.tbl.setAlternatingRowColors(True)
@@ -116,6 +126,7 @@ class RelatorioMovimentacoesDialog(QDialog):
         
         self.cb_filtro_categoria.currentTextChanged.connect(lambda: self.aplicar_filtros())
         self.cb_filtro_usuario.currentTextChanged.connect(lambda: self.aplicar_filtros())
+        self.ed_filtro_venda.textChanged.connect(lambda: self.aplicar_filtros())
 
         self.carregar_dados_iniciais()
 
@@ -143,6 +154,7 @@ class RelatorioMovimentacoesDialog(QDialog):
         
         categoria_alvo = self.cb_filtro_categoria.currentText()
         usuario_alvo = self.cb_filtro_usuario.currentText()
+        venda_alvo = self.ed_filtro_venda.text().strip()
         
         agora = datetime.now()
         self.dados_filtrados = []
@@ -157,6 +169,11 @@ class RelatorioMovimentacoesDialog(QDialog):
             user_doc = str(d.get("usuario_nome") or "Sistema")
             if usuario_alvo != "Todos os Usuários" and user_doc != usuario_alvo:
                 continue
+            
+            # 3. Filtro ID venda
+            if venda_alvo:
+                if str(d.get("venda_id") or "") != venda_alvo:
+                    continue
             
             # 3. Filtro de Período (Opcional, se 'periodo' for enviado)
             if periodo:
@@ -192,8 +209,17 @@ class RelatorioMovimentacoesDialog(QDialog):
                 str(m.get("observacao") or ""),
                 str(m.get("venda_id") or ""),
                 str(m.get("usuario_nome") or ""),
-                _money(float(m.get("valor_venda_centavos") or 0)),
-                f"{float(m.get('desconto') or 0):.2f}%"
+                _money(float(m.get("valor_venda_centavos") / 100 or 0)),
+                f"{float(m.get('desconto') or 0):.2f}%",
+                _money(
+                    (
+                        float(m.get("preco_centavos") or 0) / 100
+                        *
+                        float(m.get("quantidade") or 0)
+                        *
+                        float(m.get("desconto") or 0) / 100
+                    )
+                )
             ]
             
             for c, texto in enumerate(items):
@@ -428,9 +454,9 @@ class TelaProdutos(QWidget):
         top_l.addLayout(actions)
 
         # Rodapé: Histórico Rápido
-        self.tbl_mov = QTableWidget(0, 12)
+        self.tbl_mov = QTableWidget(0, 13)
         self.tbl_mov.setHorizontalHeaderLabels([
-            "Data", "Tipo", "Produto", "Cat.", "Qtd", "Tam", "Un", "Obs", "Venda", "Usuário", "Valor", "Desc"
+            "Data", "Tipo", "Produto", "Cat.", "Qtd", "Tam", "Un", "Obs", "Venda", "Usuário", "Valor", "Desc", "Desc R$"
         ])
         self.tbl_mov.setEditTriggers(QAbstractItemView.NoEditTriggers)
 
@@ -564,19 +590,30 @@ class TelaProdutos(QWidget):
         for m in movs:
             r = self.tbl_mov.rowCount()
             self.tbl_mov.insertRow(r)
+            desconto_percentual = float(m.get("desconto") or 0)
+
+            desconto_reais = (
+                float(m.get("preco_centavos") or 0) / 100
+                *
+                float(m.get("quantidade") or 0)
+                *
+                desconto_percentual / 100
+            )
+
             values = [
                 str(m.get("data") or ""), 
                 str(m.get("tipo") or ""), 
                 str(m.get("produto_nome") or ""),
                 str(m.get("categoria") or "Outros"),
-                str(m.get("quantidade") or 0), 
+                str(m.get("quantidade") or 0),
                 _format_tamanho(float(m.get("tamanho") or 0), "un"),
-                str(m.get("unidade") or ""), 
-                str(m.get("observacao") or ""), 
+                str(m.get("unidade") or ""),
+                str(m.get("observacao") or ""),
                 str(m.get("venda_id") or ""),
-                str(m.get("usuario_nome") or ""), 
-                _money(float(m.get("valor_venda_centavos") or 0)),
-                f"{float(m.get('desconto') or 0):.2f}%"
+                str(m.get("usuario_nome") or ""),
+                _money(float(m.get("valor_venda_centavos") / 100 or 0)),
+                f"{desconto_percentual:.2f}%",
+                _money(desconto_reais)
             ]
             for c, v in enumerate(values):
                 it = QTableWidgetItem(v)
