@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS movimentacoes_estoque (
     usuario_id INTEGER,
     usuario_nome TEXT DEFAULT 'Desconhecido',
     venda_id INTEGER,
-    valor_venda INTEGER DEFAULT 0,
+    valor_venda_centavos INTEGER DEFAULT 0,
     desconto REAL DEFAULT 0,
     tamanho REAL DEFAULT 0,
     unidade TEXT DEFAULT 'un',

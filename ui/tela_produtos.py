@@ -192,7 +192,7 @@ class RelatorioMovimentacoesDialog(QDialog):
                 str(m.get("observacao") or ""),
                 str(m.get("venda_id") or ""),
                 str(m.get("usuario_nome") or ""),
-                _money(float(m.get("valor_venda") or 0)),
+                _money(float(m.get("valor_venda_centavos") or 0)),
                 f"{float(m.get('desconto') or 0):.2f}%"
             ]
             
@@ -220,7 +220,7 @@ class RelatorioMovimentacoesDialog(QDialog):
                     try:
                         df = pd.DataFrame(self.dados_filtrados)
                         # Incluindo categoria no Excel
-                        df = df[['data', 'tipo', 'produto_nome', 'categoria', 'quantidade', 'usuario_nome', 'valor_venda', 'observacao']]
+                        df = df[['data', 'tipo', 'produto_nome', 'categoria', 'quantidade', 'usuario_nome', 'valor_venda_centavos', 'observacao']]
                         df.columns = ['Data', 'Tipo', 'Produto', 'Categoria', 'Qtd', 'Usuário', 'Valor', 'Observação']
                         df.to_excel(caminho, index=False)
                         QMessageBox.information(self, "Sucesso", "Relatório exportado!")
@@ -575,7 +575,7 @@ class TelaProdutos(QWidget):
                 str(m.get("observacao") or ""), 
                 str(m.get("venda_id") or ""),
                 str(m.get("usuario_nome") or ""), 
-                _money(float(m.get("valor_venda") or 0)),
+                _money(float(m.get("valor_venda_centavos") or 0)),
                 f"{float(m.get('desconto') or 0):.2f}%"
             ]
             for c, v in enumerate(values):

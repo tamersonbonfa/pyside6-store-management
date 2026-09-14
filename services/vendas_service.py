@@ -127,7 +127,7 @@ def criar_venda(
             conn.execute(
                 """
                 INSERT INTO movimentacoes_estoque
-                (data, tipo, produto_id, quantidade, observacao, usuario_id, usuario_nome, venda_id, tamanho, unidade, valor_venda, desconto)
+                (data, tipo, produto_id, quantidade, observacao, usuario_id, usuario_nome, venda_id, tamanho, unidade, valor_venda_centavos, desconto)
                 VALUES (?, 'SAIDA', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (_now_iso(), pid, qtd, "Venda", usuario_id, usuario_nome, venda_id, tamanho, unidade, subtotal, desconto),

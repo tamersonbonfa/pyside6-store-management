@@ -17,10 +17,10 @@ class RelatoriosService:
             financeiro = conn.execute("""
                 SELECT 
                     COUNT(DISTINCT venda_id) as total_vendas,
-                    COALESCE(SUM(valor_venda), 0) / 100.0 as faturamento,
+                    COALESCE(SUM(valor_venda_centavos), 0) / 100.0 as faturamento,
                     CASE 
                         WHEN COUNT(DISTINCT venda_id) > 0 
-                        THEN (SUM(valor_venda) / 100.0) / COUNT(DISTINCT venda_id) 
+                        THEN (SUM(valor_venda_centavos) / 100.0) / COUNT(DISTINCT venda_id) 
                         ELSE 0 
                     END as ticket_medio
                 FROM movimentacoes_estoque 
@@ -45,10 +45,10 @@ class RelatoriosService:
                     p.custo_centavos AS custo_centavos,
                     p.preco_centavos AS preco_centavos,
                     CAST(SUM(m.quantidade) AS INTEGER) as qtd_vendida, 
-                    SUM(m.valor_venda) / 100.0 AS total_faturado,
+                    SUM(m.valor_venda_centavos) / 100.0 AS total_faturado,
                     0 as desconto_total_reais, -- Ajuste se você salvar desconto na movimentação
                     (
-                        SUM(m.valor_venda) -
+                        SUM(m.valor_venda_centavos) -
                         SUM(m.quantidade * p.custo_centavos)
                     ) / 100.0 AS lucro_estimado
                 FROM movimentacoes_estoque m

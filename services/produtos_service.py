@@ -290,7 +290,7 @@ def registrar_movimentacao_saida(produto_id: int, quantidade: int, usuario_id: i
         # insere movimentação
         conn.execute("""
             INSERT INTO movimentacoes_estoque
-            (data, tipo, produto_id, quantidade, observacao, usuario_id, venda_id, valor_venda, desconto, tamanho, unidade)
+            (data, tipo, produto_id, quantidade, observacao, usuario_id, venda_id, valor_venda_centavos, desconto, tamanho, unidade)
             VALUES (?, 'SAIDA', ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (data, produto_id, quantidade, observacao, usuario_id, venda_id, valor_venda, desconto, tamanho, unidade))
 
