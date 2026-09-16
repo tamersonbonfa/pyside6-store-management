@@ -2,6 +2,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 from database.db import get_connection
+from services.caixa_service import verificar_caixa_aberto
 
 def _now_iso() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -185,6 +186,8 @@ def criar_venda(
 
         # Registra entrada no caixa
         if valor_pago > 0:
+            
+            verificar_caixa_aberto()
 
             tipo = (
                 "RECEBIMENTO_CREDIARIO"

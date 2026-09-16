@@ -164,6 +164,8 @@ CREATE TABLE IF NOT EXISTS caixa_movimentacoes (
 
     conta_receber_id INTEGER,
 
+    caixa_id INTEGER NOT NULL,
+
     usuario_id INTEGER NOT NULL,
 
     observacao TEXT,
@@ -176,9 +178,44 @@ CREATE TABLE IF NOT EXISTS caixa_movimentacoes (
         REFERENCES contas_receber(id)
         ON DELETE SET NULL,
 
+    FOREIGN KEY (caixa_id)
+        REFERENCES caixas(id)
+        ON DELETE RESTRICT,
+
     FOREIGN KEY (usuario_id)
         REFERENCES usuarios(id)
         ON DELETE RESTRICT
+);
+
+CREATE TABLE IF NOT EXISTS caixas (
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    usuario_abertura INTEGER NOT NULL,
+
+    data_abertura TEXT NOT NULL,
+
+    valor_inicial_centavos INTEGER NOT NULL DEFAULT 0,
+
+
+    usuario_fechamento INTEGER,
+
+    data_fechamento TEXT,
+
+    valor_final_centavos INTEGER,
+
+    diferenca_centavos INTEGER,
+
+
+    status TEXT NOT NULL DEFAULT 'ABERTO',
+
+
+    FOREIGN KEY(usuario_abertura)
+        REFERENCES usuarios(id),
+
+    FOREIGN KEY(usuario_fechamento)
+        REFERENCES usuarios(id)
+
 );
 
 CREATE INDEX IF NOT EXISTS idx_produtos_nome ON produtos(nome);

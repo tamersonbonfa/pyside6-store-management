@@ -42,6 +42,7 @@ def registrar_movimento_caixa(
             "Tipo de movimentação inválido."
         )
 
+    caixa_id = verificar_caixa_aberto()
 
     with get_connection() as conn:
 
@@ -57,10 +58,10 @@ def registrar_movimento_caixa(
                 venda_id,
                 conta_receber_id,
                 usuario_id,
+                caixa_id,
                 observacao
-            )
-
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 _now_iso(),
@@ -71,6 +72,7 @@ def registrar_movimento_caixa(
                 venda_id,
                 conta_receber_id,
                 usuario_id,
+                caixa_id,
                 observacao,
             )
         )
@@ -110,49 +112,61 @@ def saldo_caixa() -> int:
 
     with get_connection() as conn:
 
-        entradas = conn.execute(
+        caixa = conn.execute(
+            """
+            SELECT id
+            FROM caixas
+            WHERE status = 'ABERTO'
+            """
+        ).fetchone()
+
+
+        if not caixa:
+            return 0
+
+
+        saldo = conn.execute(
             """
             SELECT COALESCE(
-                SUM(valor_centavos),
+                SUM(
+                    CASE
+                        WHEN tipo IN (
+                            'ABERTURA',
+                            'VENDA',
+                            'RECEBIMENTO_CREDIARIO',
+                            'AJUSTE'
+                        )
+                        THEN valor_centavos
+
+                        WHEN tipo = 'SANGRIA'
+                        THEN -valor_centavos
+
+                        ELSE 0
+                    END
+                ),
                 0
             )
 
             FROM caixa_movimentacoes
 
-            WHERE tipo IN (
-                'ABERTURA',
-                'VENDA',
-                'RECEBIMENTO_CREDIARIO',
-                'AJUSTE'
-            )
-            """
+            WHERE caixa_id = ?
+            """,
+            (caixa["id"],)
         ).fetchone()[0]
 
 
-        saidas = conn.execute(
-            """
-            SELECT COALESCE(
-                SUM(valor_centavos),
-                0
-            )
-
-            FROM caixa_movimentacoes
-
-            WHERE tipo = 'SANGRIA'
-            """
-        ).fetchone()[0]
-
-
-        return int(entradas) - int(saidas)
+        return int(saldo)
 
 def registrar_saida_caixa(
     valor_centavos: int,
     descricao: str,
     usuario_id: int,
     observacao: str = "",
-    tipo: str = "SAIDA"
+    tipo: str = "SANGRIA"
 ):
 
+    caixa_id = verificar_caixa_aberto()
+    
     if valor_centavos <= 0:
         raise ValueError(
             "O valor da saída deve ser maior que zero."
@@ -180,10 +194,11 @@ def registrar_saida_caixa(
                 venda_id,
                 conta_receber_id,
                 usuario_id,
+                caixa_id,
                 observacao
             )
 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 _now_iso(),
@@ -194,8 +209,226 @@ def registrar_saida_caixa(
                 None,
                 None,
                 usuario_id,
+                caixa_id,
                 observacao
             )
         )
 
         conn.commit()
+        
+def registrar_entrada_caixa(
+    valor_centavos: int,
+    descricao: str,
+    usuario_id: int,
+    observacao: str = ""
+):
+
+    caixa_id = verificar_caixa_aberto()
+    
+    if valor_centavos <= 0:
+        raise ValueError(
+            "O valor da entrada deve ser maior que zero."
+        )
+
+    with get_connection() as conn:
+
+        conn.execute(
+            """
+            INSERT INTO caixa_movimentacoes
+            (
+                data,
+                tipo,
+                descricao,
+                valor_centavos,
+                forma_pagamento,
+                venda_id,
+                conta_receber_id,
+                usuario_id,
+                caixa_id,
+                observacao
+            )
+
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                _now_iso(),
+                "AJUSTE",
+                descricao,
+                valor_centavos,
+                None,
+                None,
+                None,
+                usuario_id,
+                caixa_id,
+                observacao
+            )
+        )
+
+        conn.commit()
+        
+def abrir_caixa(
+    usuario_id: int,
+    valor_inicial_centavos: int
+):
+
+    with get_connection() as conn:
+
+        caixa_aberto = conn.execute(
+            """
+            SELECT id
+            FROM caixas
+            WHERE status = 'ABERTO'
+            """
+        ).fetchone()
+
+
+        if caixa_aberto:
+            raise ValueError(
+                "Já existe um caixa aberto."
+            )
+
+
+        cursor = conn.execute(
+            """
+            INSERT INTO caixas
+            (
+                usuario_abertura,
+                data_abertura,
+                valor_inicial_centavos,
+                status
+            )
+            VALUES (?, ?, ?, 'ABERTO')
+            """,
+            (
+                usuario_id,
+                _now_iso(),
+                valor_inicial_centavos
+            )
+        )
+
+
+        caixa_id = cursor.lastrowid
+
+
+        conn.execute(
+            """
+            INSERT INTO caixa_movimentacoes
+            (
+                data,
+                tipo,
+                descricao,
+                valor_centavos,
+                caixa_id,
+                usuario_id
+            )
+
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                _now_iso(),
+                "ABERTURA",
+                "Abertura do caixa",
+                valor_inicial_centavos,
+                caixa_id,
+                usuario_id
+            )
+        )
+
+
+        conn.commit()
+        
+def obter_caixa_aberto():
+
+    with get_connection() as conn:
+
+        return conn.execute(
+            """
+            SELECT *
+            FROM caixas
+            WHERE status = 'ABERTO'
+            """
+        ).fetchone()
+
+def fechar_caixa(
+    usuario_id: int,
+    valor_final_centavos: int
+):
+
+    if valor_final_centavos < 0:
+        raise ValueError(
+            "Valor final inválido."
+        )
+
+
+    with get_connection() as conn:
+
+        caixa = conn.execute(
+            """
+            SELECT id
+            FROM caixas
+            WHERE status = 'ABERTO'
+            """
+        ).fetchone()
+
+
+        if not caixa:
+            raise ValueError(
+                "Não existe caixa aberto."
+            )
+
+
+        # saldo esperado do sistema
+        saldo_esperado = saldo_caixa()
+
+
+        diferenca = (
+            valor_final_centavos
+            - saldo_esperado
+        )
+
+
+        conn.execute(
+            """
+            UPDATE caixas
+
+            SET
+                usuario_fechamento = ?,
+                data_fechamento = ?,
+                valor_final_centavos = ?,
+                diferenca_centavos = ?,
+                status = 'FECHADO'
+
+            WHERE id = ?
+            """,
+            (
+                usuario_id,
+                _now_iso(),
+                valor_final_centavos,
+                diferenca,
+                caixa["id"]
+            )
+        )
+
+
+        conn.commit()
+
+def verificar_caixa_aberto():
+
+    with get_connection() as conn:
+
+        caixa = conn.execute(
+            """
+            SELECT id
+            FROM caixas
+            WHERE status = 'ABERTO'
+            """
+        ).fetchone()
+
+
+        if not caixa:
+            raise ValueError(
+                "Não existe caixa aberto."
+            )
+
+
+        return caixa["id"]

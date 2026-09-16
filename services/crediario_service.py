@@ -5,6 +5,7 @@ from typing import Any
 
 from database.db import get_connection
 
+from services.caixa_service import verificar_caixa_aberto
 
 def _now_iso() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -92,6 +93,8 @@ def registrar_pagamento(
     usuario_id: int,
     observacao: str = ""
 ):
+    
+    verificar_caixa_aberto()
 
     with get_connection() as conn:
 

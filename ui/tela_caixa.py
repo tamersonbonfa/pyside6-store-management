@@ -9,11 +9,17 @@ from PySide6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QMessageBox,
+    QInputDialog,
 )
 
 from services.caixa_service import (
     saldo_caixa,
-    listar_movimentacoes_caixa
+    listar_movimentacoes_caixa,
+    registrar_entrada_caixa,
+    registrar_saida_caixa,
+    abrir_caixa,
+    fechar_caixa,
+    obter_caixa_aberto
 )
 
 
@@ -82,9 +88,25 @@ class TelaCaixa(QWidget):
             "➕ Entrada Manual"
         )
 
+        self.btn_abrir = QPushButton(
+            "🟢 Abrir Caixa"
+        )
+
+        self.btn_fechar = QPushButton(
+            "🔴 Fechar Caixa"
+        )
+
 
         barra.addWidget(
             self.btn_atualizar
+        )
+
+        barra.addWidget(
+            self.btn_abrir
+        )
+
+        barra.addWidget(
+            self.btn_fechar
         )
 
         barra.addWidget(
@@ -132,6 +154,21 @@ class TelaCaixa(QWidget):
             self.carregar
         )
 
+        self.btn_sangria.clicked.connect(
+            self.abrir_sangria
+        )
+
+        self.btn_entrada.clicked.connect(
+            self.abrir_entrada_manual
+        )
+
+        self.btn_abrir.clicked.connect(
+            self.abrir_caixa
+        )
+
+        self.btn_fechar.clicked.connect(
+            self.fechar_caixa
+        )
 
         self.carregar()
 
@@ -142,8 +179,20 @@ class TelaCaixa(QWidget):
 
             saldo = saldo_caixa()
 
+            caixa = obter_caixa_aberto()
+
+
+            if caixa:
+
+                status = "🟢 Caixa aberto"
+
+            else:
+
+                status = "🔴 Caixa fechado"
+
+
             self.lbl_saldo.setText(
-                f"Saldo: {_money(saldo / 100)}"
+                f"{status}\nSaldo: {_money(saldo / 100)}"
             )
 
 
@@ -192,6 +241,155 @@ class TelaCaixa(QWidget):
 
 
             self.tabela.resizeColumnsToContents()
+
+
+        except Exception as e:
+
+            QMessageBox.critical(
+                self,
+                "Erro",
+                str(e)
+            )
+            
+    def abrir_sangria(self):
+
+        valor, ok = QInputDialog.getDouble(
+            self,
+            "Sangria",
+            "Valor retirado:"
+        )
+
+        if not ok:
+            return
+
+        if valor <= 0:
+            return
+
+        try:
+            registrar_saida_caixa(
+                valor_centavos=int(round(valor * 100)),
+                descricao="Sangria",
+                usuario_id=self.usuario_id
+            )
+
+            QMessageBox.information(
+                self,
+                "Sucesso",
+                "Sangria registrada."
+            )
+
+            self.carregar()
+
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Erro",
+                str(e)
+            )
+            
+    def abrir_entrada_manual(self):
+
+        valor, ok = QInputDialog.getDouble(
+            self,
+            "Entrada Manual",
+            "Valor:"
+        )
+
+        if not ok:
+            return
+
+        if valor <= 0:
+            return
+
+        try:
+            registrar_entrada_caixa(
+                valor_centavos=int(round(valor * 100)),
+                descricao="Entrada manual",
+                usuario_id=self.usuario_id
+            )
+
+            QMessageBox.information(
+                self,
+                "Sucesso",
+                "Entrada registrada."
+            )
+
+            self.carregar()
+
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Erro",
+                str(e)
+            )
+            
+    def abrir_caixa(self):
+
+        valor, ok = QInputDialog.getDouble(
+            self,
+            "Abrir Caixa",
+            "Valor inicial:"
+        )
+
+        if not ok:
+            return
+
+
+        try:
+
+            abrir_caixa(
+                usuario_id=self.usuario_id,
+                valor_inicial_centavos=int(round(valor * 100))
+            )
+
+
+            QMessageBox.information(
+                self,
+                "Sucesso",
+                "Caixa aberto."
+            )
+
+
+            self.carregar()
+
+
+        except Exception as e:
+
+            QMessageBox.critical(
+                self,
+                "Erro",
+                str(e)
+            )
+            
+    def fechar_caixa(self):
+
+        valor, ok = QInputDialog.getDouble(
+            self,
+            "Fechar Caixa",
+            "Valor contado:"
+        )
+
+
+        if not ok:
+            return
+
+
+        try:
+
+            fechar_caixa(
+                usuario_id=self.usuario_id,
+                valor_final_centavos=int(round(valor * 100))
+            )
+
+
+            QMessageBox.information(
+                self,
+                "Sucesso",
+                "Caixa fechado."
+            )
+
+
+            self.carregar()
 
 
         except Exception as e:
