@@ -17,6 +17,7 @@ from ui.tela_vendas import TelaVendas
 from ui.tela_crediario import TelaCrediario
 from ui.tela_usuarios import TelaUsuarios
 from ui.tela_relatorios import TelaRelatorios
+from ui.tela_relatorio_crediario import TelaRelatorioCrediario
 
 
 class MainWindow(QMainWindow):
@@ -76,8 +77,10 @@ class MainWindow(QMainWindow):
             sb.addWidget(line)
             sb.addSpacing(5)
             self.btn_relatorios = QPushButton("📊 Relatórios Gerenciais")
+            self.btn_relatorio_crediario = QPushButton("💰 Relatório Crediário")
             self.btn_usuarios = QPushButton("🔑 Gestão de Usuários")
             sb.addWidget(self.btn_relatorios)
+            sb.addWidget(self.btn_relatorio_crediario)
             sb.addWidget(self.btn_usuarios)
 
         self.btn_tema = QPushButton("🌙 Tema: Escuro")
@@ -101,9 +104,12 @@ class MainWindow(QMainWindow):
 
         if self.is_admin:
             self.tela_relatorios = TelaRelatorios()
+            self.tela_relatorio_crediario = TelaRelatorioCrediario()
             self.tela_usuarios = TelaUsuarios(usuario=self.usuario)
-            self.stack.addWidget(self.tela_relatorios) # Index 3
-            self.stack.addWidget(self.tela_usuarios)   # Index 4
+
+            self.stack.addWidget(self.tela_relatorios)
+            self.stack.addWidget(self.tela_relatorio_crediario)
+            self.stack.addWidget(self.tela_usuarios)
 
         # ✅ CONEXÃO DO SINAL (Depois de criar as telas e o stack)
         self.stack.currentChanged.connect(self.atualizar_tela_ativa)
@@ -120,6 +126,7 @@ class MainWindow(QMainWindow):
         if self.is_admin:
             self.btn_relatorios.clicked.connect(lambda: self.stack.setCurrentWidget(self.tela_relatorios))
             self.btn_usuarios.clicked.connect(lambda: self.stack.setCurrentWidget(self.tela_usuarios))
+            self.btn_relatorio_crediario.clicked.connect(lambda: self.stack.setCurrentWidget(self.tela_relatorio_crediario))
 
         self.btn_tema.clicked.connect(self.toggle_theme)
         self.apply_theme(get_config("theme", "dark"))

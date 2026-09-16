@@ -9,9 +9,10 @@ from PySide6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QMessageBox,
+    QAbstractItemView,
 )
 
-from services.crediario_service import listar_contas_receber
+from services.crediario_service import listar_contas_receber, listar_pagamentos_conta
 from ui.registrar_pagamento_dialog import RegistrarPagamentoDialog
 from services.crediario_service import registrar_pagamento
 
@@ -98,6 +99,46 @@ class TelaCrediario(QWidget):
             self.tabela
         )
 
+        # Painel de detalhes da conta selecionada
+        self.lbl_detalhes = QLabel(
+            "Nenhuma conta selecionada."
+        )
+
+        self.lbl_detalhes.setStyleSheet(
+            """
+            font-size: 14px;
+            padding: 10px;
+            border: 1px solid #555;
+            """
+        )
+
+        self.lbl_detalhes.setWordWrap(True)
+
+        layout.addWidget(self.lbl_detalhes)
+        
+        self.tabela_pagamentos = QTableWidget()
+
+        self.tabela_pagamentos.setColumnCount(4)
+
+        self.tabela_pagamentos.setHorizontalHeaderLabels([
+            "Data/Hora",
+            "Valor",
+            "Usuário",
+            "Observação"
+        ])
+
+        self.tabela_pagamentos.setEditTriggers(
+            QAbstractItemView.NoEditTriggers
+        )
+
+        layout.addWidget(
+            QLabel("Histórico de pagamentos")
+        )
+
+        layout.addWidget(
+            self.tabela_pagamentos
+        )
+
 
         self.btn_atualizar.clicked.connect(
             self.carregar
@@ -166,19 +207,58 @@ class TelaCrediario(QWidget):
                 "Erro",
                 str(e)
             )
-    def selecionar_conta(self, row, column):
+            
+    def selecionar_conta(self):
 
-        item = self.tabela.item(row, 0)
+        itens = self.tabela.selectedItems()
+
+        if not itens:
+            self.conta_selecionada = None
+            self.lbl_detalhes.setText(
+                "Nenhuma conta selecionada."
+            )
+            return
+
+
+        linha = itens[0].row()
+
+        item = self.tabela.item(linha, 0)
 
         if not item:
             return
+
 
         conta = item.data(
             Qt.ItemDataRole.UserRole
         )
 
+
         if conta:
             self.conta_selecionada = conta
+
+            self.carregar_pagamentos(
+                conta["id"]
+            )
+
+
+            saldo = conta["saldo_centavos"] / 100
+            pago = conta["valor_pago_centavos"] / 100
+            valor = conta["valor_centavos"] / 100
+
+
+            self.lbl_detalhes.setText(
+                f"""
+    <b>Cliente:</b> {conta['cliente_nome']}<br>
+    <b>Venda:</b> #{conta['venda_id']}<br>
+    <br>
+    <b>Valor da compra:</b> R$ {valor:.2f}<br>
+    <b>Pago:</b> R$ {pago:.2f}<br>
+    <b>Saldo devedor:</b> R$ {saldo:.2f}<br>
+    <br>
+    <b>Status:</b> {conta['status']}<br>
+    <b>Criado em:</b> {conta['data_criacao']}
+    """
+            )
 
     
     def registrar_pagamento(self):
@@ -235,3 +315,32 @@ class TelaCrediario(QWidget):
                     "Erro",
                     str(e)
                 )
+                
+    def carregar_pagamentos(self, conta_id: int):
+
+        pagamentos = listar_pagamentos_conta(conta_id)
+
+        self.tabela_pagamentos.setRowCount(0)
+
+        for pagamento in pagamentos:
+
+            linha = self.tabela_pagamentos.rowCount()
+
+            self.tabela_pagamentos.insertRow(linha)
+
+            valores = [
+                pagamento["data"],
+                _money(pagamento["valor"]),
+                pagamento.get("usuario_nome") or "Desconhecido",
+                pagamento.get("observacao") or "",
+            ]
+
+            for coluna, valor in enumerate(valores):
+
+                self.tabela_pagamentos.setItem(
+                    linha,
+                    coluna,
+                    QTableWidgetItem(str(valor))
+                )
+
+        self.tabela_pagamentos.resizeColumnsToContents()

@@ -96,7 +96,7 @@ def criar_venda(
 
         troco = 0
 
-        if forma_pagamento != "CREDIARIO":
+        if valor_pago > total:
             troco = float(valor_pago - total)
 
         usuario_row = conn.execute("SELECT nome, username FROM usuarios WHERE id = ?", (usuario_id,)).fetchone()
@@ -119,8 +119,13 @@ def criar_venda(
 
             if valor_pago_centavos >= valor_total_centavos:
                 status = "QUITADO"
+
+                # nunca deixa crédito negativo
+                valor_pago_centavos = valor_total_centavos
+
             elif valor_pago_centavos > 0:
                 status = "PARCIAL"
+
             else:
                 status = "ABERTO"
 
@@ -158,7 +163,7 @@ def criar_venda(
             tamanho = produto["tamanho"] if produto else 0
             unidade = produto["unidade"] if produto else "un"
 
-            # CORREÇÃO: Adicionado 'desconto' na tabela venda_itens
+            
             conn.execute(
                 """
                 INSERT INTO venda_itens (venda_id, produto_id, quantidade, preco_unitario_centavos, subtotal_centavos, tamanho, unidade, desconto)

@@ -176,3 +176,95 @@ def registrar_pagamento(
         )
 
         conn.commit()
+        
+def listar_pagamentos_conta(conta_id: int) -> list[dict[str, Any]]:
+
+    with get_connection() as conn:
+
+        rows = conn.execute(
+            """
+            SELECT
+                pc.id,
+                pc.data,
+                pc.valor_centavos,
+                pc.observacao,
+                u.nome AS usuario_nome
+
+            FROM pagamentos_contas pc
+
+            LEFT JOIN usuarios u
+                ON u.id = pc.usuario_id
+
+            WHERE pc.conta_id = ?
+
+            ORDER BY pc.id DESC
+            """,
+            (conta_id,)
+        ).fetchall()
+
+
+        return [
+            {
+                **dict(row),
+                "valor": _centavos_para_reais(row["valor_centavos"])
+            }
+            for row in rows
+        ]
+
+def listar_clientes_devedores() -> list[dict[str, Any]]:
+
+    with get_connection() as conn:
+
+        rows = conn.execute(
+            """
+            SELECT
+                c.id,
+                c.nome,
+                c.telefone,
+
+                COUNT(cr.id) AS quantidade_contas,
+
+                SUM(cr.valor_centavos) AS total_devido,
+
+                SUM(cr.valor_pago_centavos) AS total_pago,
+
+                SUM(
+                    cr.valor_centavos - cr.valor_pago_centavos
+                ) AS saldo_devedor
+
+            FROM clientes c
+
+            JOIN contas_receber cr
+                ON cr.cliente_id = c.id
+
+            WHERE cr.status IN ('ABERTO', 'PARCIAL')
+
+            GROUP BY c.id
+
+            ORDER BY saldo_devedor DESC
+            """
+        ).fetchall()
+
+
+        return [
+            {
+                **dict(row),
+
+                "total_devido":
+                    _centavos_para_reais(
+                        row["total_devido"]
+                    ),
+
+                "total_pago":
+                    _centavos_para_reais(
+                        row["total_pago"]
+                    ),
+
+                "saldo_devedor":
+                    _centavos_para_reais(
+                        row["saldo_devedor"]
+                    )
+            }
+
+            for row in rows
+        ]
