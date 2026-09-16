@@ -112,7 +112,11 @@ def registrar_pagamento(
         if not conta:
             raise ValueError("Conta não encontrada.")
 
-
+        if valor_pago <= 0:
+            raise ValueError("O valor do pagamento deve ser maior que zero.")
+        
+        data_pagamento = _now_iso()
+        
         novo_pago = (
             int(conta["valor_pago_centavos"])
             + int(valor_pago)
@@ -122,9 +126,13 @@ def registrar_pagamento(
         total = int(conta["valor_centavos"])
 
 
-        if novo_pago >= total:
+        if novo_pago > total:
+            raise ValueError(
+                f"Pagamento inválido. Saldo devedor atual: R$ {((total - int(conta['valor_pago_centavos'])) / 100):.2f}"
+                )
+        elif novo_pago == total:
             status = "QUITADO"
-            data_quitacao = _now_iso()
+            data_quitacao = data_pagamento
         elif novo_pago > 0:
             status = "PARCIAL"
             data_quitacao = None
@@ -149,7 +157,7 @@ def registrar_pagamento(
             (
                 conta_id,
                 valor_pago,
-                _now_iso(),
+                data_pagamento,
                 usuario_id,
                 observacao
             )
@@ -172,6 +180,31 @@ def registrar_pagamento(
                 status,
                 data_quitacao,
                 conta_id
+            )
+        )
+
+        conn.execute(
+            """
+            INSERT INTO caixa_movimentacoes
+            (
+                data,
+                tipo,
+                descricao,
+                valor_centavos,
+                forma_pagamento,
+                conta_receber_id,
+                usuario_id
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                data_pagamento,
+                "ENTRADA",
+                "Pagamento de crediário",
+                valor_pago,
+                "DINHEIRO",
+                conta_id,
+                usuario_id
             )
         )
 

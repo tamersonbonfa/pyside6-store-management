@@ -138,6 +138,49 @@ CREATE TABLE IF NOT EXISTS pagamentos_contas (
         ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS caixa_movimentacoes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    data TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    tipo TEXT NOT NULL,
+    -- ABERTURA
+    -- VENDA
+    -- RECEBIMENTO_CREDIARIO
+    -- SANGRIA
+    -- AJUSTE
+
+    descricao TEXT NOT NULL,
+
+    valor_centavos INTEGER NOT NULL,
+
+    forma_pagamento TEXT,
+    -- DINHEIRO
+    -- PIX
+    -- CARTAO
+    -- CREDIARIO
+
+    venda_id INTEGER,
+
+    conta_receber_id INTEGER,
+
+    usuario_id INTEGER NOT NULL,
+
+    observacao TEXT,
+
+    FOREIGN KEY (venda_id)
+        REFERENCES vendas(id)
+        ON DELETE SET NULL,
+
+    FOREIGN KEY (conta_receber_id)
+        REFERENCES contas_receber(id)
+        ON DELETE SET NULL,
+
+    FOREIGN KEY (usuario_id)
+        REFERENCES usuarios(id)
+        ON DELETE RESTRICT
+);
+
 CREATE INDEX IF NOT EXISTS idx_produtos_nome ON produtos(nome);
 CREATE INDEX IF NOT EXISTS idx_clientes_nome ON clientes(nome);
 CREATE INDEX IF NOT EXISTS idx_vendas_usuario ON vendas(usuario_id);

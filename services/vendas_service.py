@@ -183,6 +183,55 @@ def criar_venda(
 
             conn.execute("UPDATE produtos SET quantidade = quantidade - ? WHERE id = ?", (qtd, pid))
 
+        # Registra entrada no caixa
+        if valor_pago > 0:
+
+            tipo = (
+                "RECEBIMENTO_CREDIARIO"
+                if forma_pagamento == "CREDIARIO"
+                else "VENDA"
+            )
+
+            descricao = (
+                "Pagamento inicial crediário"
+                if forma_pagamento == "CREDIARIO"
+                else "Venda realizada"
+            )
+
+            valor_caixa = valor_pago
+
+            if forma_pagamento != "CREDIARIO":
+                valor_caixa = total
+            
+            if forma_pagamento == "CREDIARIO" and valor_pago > total:
+                valor_caixa = total
+
+            conn.execute(
+                """
+                INSERT INTO caixa_movimentacoes
+                (
+                    data,
+                    tipo,
+                    descricao,
+                    valor_centavos,
+                    forma_pagamento,
+                    venda_id,
+                    usuario_id
+                )
+
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    _now_iso(),
+                    tipo,
+                    descricao,
+                    int(round(valor_caixa * 100)),
+                    forma_pagamento,
+                    venda_id,
+                    usuario_id
+                )
+            )
+        
         conn.commit()
         return venda_id
 
