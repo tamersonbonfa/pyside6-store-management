@@ -94,7 +94,7 @@ def registrar_pagamento(
     observacao: str = ""
 ):
     
-    verificar_caixa_aberto()
+    caixa_id = verificar_caixa_aberto()
 
     with get_connection() as conn:
 
@@ -196,18 +196,20 @@ def registrar_pagamento(
                 valor_centavos,
                 forma_pagamento,
                 conta_receber_id,
-                usuario_id
+                usuario_id,
+                caixa_id
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 data_pagamento,
-                "ENTRADA",
+                "RECEBIMENTO_CREDIARIO",
                 "Pagamento de crediário",
                 valor_pago,
                 "DINHEIRO",
                 conta_id,
-                usuario_id
+                usuario_id,
+                caixa_id
             )
         )
 

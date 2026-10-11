@@ -65,6 +65,8 @@ def criar_venda(
             "Venda fiado precisa ter um cliente selecionado."
         )
     
+    caixa_id = verificar_caixa_aberto()
+    
     if valor_pago < 0:
         raise ValueError("Valor pago inválido.")
 
@@ -187,7 +189,6 @@ def criar_venda(
         # Registra entrada no caixa
         if valor_pago > 0:
             
-            verificar_caixa_aberto()
 
             tipo = (
                 "RECEBIMENTO_CREDIARIO"
@@ -219,10 +220,11 @@ def criar_venda(
                     valor_centavos,
                     forma_pagamento,
                     venda_id,
-                    usuario_id
+                    usuario_id,
+                    caixa_id
                 )
 
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     _now_iso(),
@@ -231,7 +233,8 @@ def criar_venda(
                     int(round(valor_caixa * 100)),
                     forma_pagamento,
                     venda_id,
-                    usuario_id
+                    usuario_id,
+                    caixa_id
                 )
             )
         

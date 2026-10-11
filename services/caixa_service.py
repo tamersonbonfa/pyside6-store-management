@@ -359,7 +359,6 @@ def fechar_caixa(
             "Valor final inválido."
         )
 
-
     with get_connection() as conn:
 
         caixa = conn.execute(
@@ -370,22 +369,23 @@ def fechar_caixa(
             """
         ).fetchone()
 
-
         if not caixa:
             raise ValueError(
                 "Não existe caixa aberto."
             )
 
+        caixa_id = caixa["id"]
 
-        # saldo esperado do sistema
+        # Saldo que o sistema espera encontrar
         saldo_esperado = saldo_caixa()
 
-
+        # Diferença entre o valor contado e o esperado
         diferenca = (
             valor_final_centavos
             - saldo_esperado
         )
 
+        data_fechamento = _now_iso()
 
         conn.execute(
             """
@@ -402,15 +402,23 @@ def fechar_caixa(
             """,
             (
                 usuario_id,
-                _now_iso(),
+                data_fechamento,
                 valor_final_centavos,
                 diferenca,
-                caixa["id"]
+                caixa_id
             )
         )
 
-
         conn.commit()
+
+        return {
+            "caixa_id": caixa_id,
+            "saldo_esperado": saldo_esperado,
+            "valor_final": valor_final_centavos,
+            "diferenca": diferenca,
+        }
+
+
 
 def verificar_caixa_aberto():
 
@@ -432,3 +440,218 @@ def verificar_caixa_aberto():
 
 
         return caixa["id"]
+
+
+def resumo_relatorio_caixa(
+    inicio: str,
+    fim: str
+) -> dict[str, int]:
+
+    inicio_full = f"{inicio} 00:00:00"
+    fim_full = f"{fim} 23:59:59"
+
+    with get_connection() as conn:
+
+        row = conn.execute(
+            """
+            SELECT
+                COALESCE(
+                    SUM(
+                        CASE
+                            WHEN tipo = 'ABERTURA'
+                            THEN valor_centavos
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ) AS abertura,
+
+                COALESCE(
+                    SUM(
+                        CASE
+                            WHEN tipo = 'VENDA'
+                            THEN valor_centavos
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ) AS vendas,
+
+                COALESCE(
+                    SUM(
+                        CASE
+                            WHEN tipo = 'RECEBIMENTO_CREDIARIO'
+                            THEN valor_centavos
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ) AS recebimentos_crediario,
+
+                COALESCE(
+                    SUM(
+                        CASE
+                            WHEN tipo = 'AJUSTE'
+                            THEN valor_centavos
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ) AS entradas,
+
+                COALESCE(
+                    SUM(
+                        CASE
+                            WHEN tipo = 'SANGRIA'
+                            THEN valor_centavos
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ) AS sangrias
+
+            FROM caixa_movimentacoes
+
+            WHERE data BETWEEN ? AND ?
+            """,
+            (
+                inicio_full,
+                fim_full
+            )
+        ).fetchone()
+
+        abertura = int(row["abertura"])
+        vendas = int(row["vendas"])
+        recebimentos_crediario = int(
+            row["recebimentos_crediario"]
+        )
+        entradas = int(row["entradas"])
+        sangrias = int(row["sangrias"])
+
+        total_entradas = (
+            abertura
+            + vendas
+            + recebimentos_crediario
+            + entradas
+        )
+
+        total_saidas = sangrias
+
+        movimentacao_liquida = (
+            total_entradas
+            - total_saidas
+        )
+
+        return {
+            "abertura": abertura,
+            "vendas": vendas,
+            "recebimentos_crediario": recebimentos_crediario,
+            "entradas": entradas,
+            "sangrias": sangrias,
+            "total_entradas": total_entradas,
+            "total_saidas": total_saidas,
+            "movimentacao_liquida": movimentacao_liquida,
+        }
+        
+def listar_movimentacoes_periodo(
+    inicio: str,
+    fim: str
+) -> list[dict[str, Any]]:
+
+    inicio_full = f"{inicio} 00:00:00"
+    fim_full = f"{fim} 23:59:59"
+
+    with get_connection() as conn:
+
+        rows = conn.execute(
+            """
+            SELECT
+                cm.id,
+                cm.data,
+                cm.tipo,
+                cm.descricao,
+                cm.valor_centavos,
+                cm.forma_pagamento,
+                cm.venda_id,
+                cm.conta_receber_id,
+                cm.caixa_id,
+                cm.usuario_id,
+                cm.observacao,
+                u.nome AS usuario_nome
+
+            FROM caixa_movimentacoes cm
+
+            LEFT JOIN usuarios u
+                ON u.id = cm.usuario_id
+
+            WHERE cm.data BETWEEN ? AND ?
+
+            ORDER BY cm.data DESC, cm.id DESC
+            """,
+            (
+                inicio_full,
+                fim_full
+            )
+        ).fetchall()
+
+        return [
+            dict(row)
+            for row in rows
+        ]
+        
+def listar_caixas_periodo(
+    inicio: str,
+    fim: str
+) -> list[dict[str, Any]]:
+
+    inicio_full = f"{inicio} 00:00:00"
+    fim_full = f"{fim} 23:59:59"
+
+    with get_connection() as conn:
+
+        rows = conn.execute(
+            """
+            SELECT
+                cx.id,
+                cx.usuario_abertura,
+                ua.nome AS usuario_abertura_nome,
+                cx.data_abertura,
+                cx.valor_inicial_centavos,
+                cx.status,
+                cx.usuario_fechamento,
+                uf.nome AS usuario_fechamento_nome,
+                cx.data_fechamento,
+                cx.valor_final_centavos,
+                cx.diferenca_centavos
+
+            FROM caixas cx
+
+            LEFT JOIN usuarios ua
+                ON ua.id = cx.usuario_abertura
+
+            LEFT JOIN usuarios uf
+                ON uf.id = cx.usuario_fechamento
+
+            WHERE
+                (
+                    cx.data_abertura BETWEEN ? AND ?
+                )
+                OR
+                (
+                    cx.data_fechamento BETWEEN ? AND ?
+                )
+
+            ORDER BY cx.id DESC
+            """,
+            (
+                inicio_full,
+                fim_full,
+                inicio_full,
+                fim_full
+            )
+        ).fetchall()
+
+        return [
+            dict(row)
+            for row in rows
+        ]
