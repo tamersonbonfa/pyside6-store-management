@@ -6,6 +6,9 @@ __pycache__/
 .venv/
 venv/
 ENV/
+indexar_docs.py
+test_embed.py
+db_vetorial/
 
 ### Base de Dados e Configurações ###
 # Ignora a pasta database para não subir dados sensíveis ou locais
