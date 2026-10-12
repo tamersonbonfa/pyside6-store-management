@@ -9,7 +9,7 @@ ENV/
 indexar_docs.py
 test_embed.py
 db_vetorial/
-
+servidor_mcp_rag.py
 ### Base de Dados e Configurações ###
 # Ignora a pasta database para não subir dados sensíveis ou locais
 *.db
